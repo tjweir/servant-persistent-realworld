@@ -128,9 +128,9 @@ getPoolSize _           = 1
 -- any cannot be found.
 getConnStr :: Environment -> IO ConnectionString
 getConnStr Development
-  = pure $ "host=localhost port=5432 user=jkachmar password= dbname=macchina"
+  = pure $ "host=localhost port=5432 user=tylerweir password= dbname=macchina"
 getConnStr Testing
-  = pure $ "host=localhost port=5432 user=jkachmar password= dbname=macchina-test"
+  = pure $ "host=localhost port=5432 user=tylerweir password= dbname=macchina-test"
 getConnStr _ = do
   maybePool <- runMaybeT $ do
     let keys = [ "host="

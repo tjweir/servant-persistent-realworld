@@ -30,10 +30,7 @@ usersHandler = protected :<|> unprotected
 
 --------------------------------------------------------------------------------
 -- | Type-level representation of the endpoints protected by 'Auth'.
-type ProtectedApi = "users" :>
-  "register"
-    :> ReqBody '[JSON] UserRegister
-      :> Post '[JSON] UserResponse
+type ProtectedApi = "users" :> "register" :> ReqBody '[JSON] UserRegister :> Post '[JSON] UserResponse
 
 -- | Check authentication status and dispatch the request to the appropriate
 -- endpoint handler.
@@ -46,16 +43,12 @@ register :: Token -> UserRegister -> App UserResponse
 register _ userReg = do
   hashedPw <- hashPassword $ fromUPlainText $ userReg ^. password
   dbUser   <- runDB $ insertUser (userReg ^. name) (userReg ^. email) hashedPw
-  let logAction = addNamespace "register"
-                $ logInfoM [logt|"#{dbUser} was registered."|]
+  let logAction = addNamespace "register" $ logInfoM [logt|"#{dbUser} was registered."|]
   mkUserResponse userReg hashedPw dbUser logAction
 
 --------------------------------------------------------------------------------
 -- | Type-level representation of the endpoints not protected by 'Auth'.
-type UnprotectedApi = "users" :>
-  "login"
-    :> ReqBody '[JSON] UserLogin
-      :> Post '[JSON] UserResponse
+type UnprotectedApi = "users" :> "login" :> ReqBody '[JSON] UserLogin :> Post '[JSON] UserResponse
 
 -- | Dispatch the request to the appropriate endpoint handler.
 unprotected :: ServerT UnprotectedApi App
@@ -70,8 +63,7 @@ login userLogin = do
     Just ( (Entity _ dbUser)
          , (Entity _ dbPass)) -> pure (dbUser, dbPass)
 
-  let logAction = addNamespace "login"
-                $ logInfoM [logt|"#{dbUser} logged in."|]
+  let logAction = addNamespace "login" $ logInfoM [logt|"#{dbUser} logged in."|]
 
   mkUserResponse userLogin (passwordHash dbPass) dbUser logAction
 
@@ -109,13 +101,10 @@ mkJWT token duration = do
 
 -- | Generate a 'UserResponse' with an expiring token (defined in 'Config'),
 -- logging to 'Katip' with the given @logAction@ function.
-mkUserResponse
-  :: HasPassword r UPlainText
-  => r -> BCrypt -> User -> App () -> App UserResponse
+mkUserResponse :: HasPassword r UPlainText => r -> BCrypt -> User -> App () -> App UserResponse
 mkUserResponse user hashedPw dbUser logAction = do
   timeout <- view jwtTimeout
   tok <- mkToken (fromUPlainText $ user ^. password) hashedPw dbUser
   jwt <- mkJWT tok timeout
   logAction
-  pure $ UserResponse
-    (userEmail dbUser) jwt (userName dbUser) (userBio dbUser) (userImage dbUser)
+  pure $ UserResponse (userEmail dbUser) jwt (userName dbUser) (userBio dbUser) (userImage dbUser)

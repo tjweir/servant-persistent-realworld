@@ -3,9 +3,9 @@ module App where
 -- Prelude.
 import           ClassyPrelude               hiding (Handler, keys)
 
+import           Configuration.Dotenv        (loadFile, onMissingFile)
 import           Database.Persist.Postgresql
 import           Network.Wai.Handler.Warp    (run)
-import           Configuration.Dotenv        (loadFile, onMissingFile)
 import           System.Environment          (lookupEnv)
 
 -- Crypto imports.
@@ -19,6 +19,7 @@ import           Servant.Auth.Server         (defaultCookieSettings,
                                               defaultJWTSettings)
 -- Local imports.
 import           Api                         (api, handler)
+-- Foundation??
 import           Foundation
 import           Model                       (migrateAll)
 
@@ -46,19 +47,24 @@ startApp = do
   jwtCfg <- defaultJWTSettings <$> mkJWK rsaKeyPath
 
   -- Set up Katip logger, dump logs to stdout
+  -- where is this?
   logger <- makeLogger env
 
   -- Create a 'ConnectionPool', log events with @Katip@
+  -- where is this?
   pool <- makePool env logger
-
+ 
   -- Run database migrations using the connection pool
   runSqlPool (runMigration migrateAll) pool
 
+  -- 1200 is the timeout in seconds for the json web tokens
   let ctx     = Ctx pool jwtCfg 1200 logger
       authCfg = defaultCookieSettings :. jwtCfg :. EmptyContext
       service = enter (appToHandler ctx) handler
       -- The 'Servant' handler for this application
 
+  putStrLn ">> Running... "
+  
   -- Get this party started!
   liftIO . run port . serveWithContext api authCfg $ service
 

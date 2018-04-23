@@ -30,11 +30,9 @@ userHandler = protected
 --------------------------------------------------------------------------------
 -- | Type-level representation of the endpoints protected by @Auth@.
 type ProtectedApi = "user" :> ProtectedApi'
-type ProtectedApi' =
-  Get '[JSON] UserResponse
-  :<|>
-  ReqBody '[JSON] UserUpdate
-    :> Put '[JSON] UserResponse
+type ProtectedApi'
+     = Get '[JSON] UserResponse
+  :<|> ReqBody '[JSON] UserUpdate :> Put '[JSON] UserResponse
 
 -- | Check authentication status and dispatch the request to the appropriate
 -- endpoint handler.
