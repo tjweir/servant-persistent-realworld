@@ -30,17 +30,17 @@ usersHandler = protected :<|> unprotected
 
 --------------------------------------------------------------------------------
 -- | Type-level representation of the endpoints protected by 'Auth'.
-type ProtectedApi = "users" :> "register" :> ReqBody '[JSON] UserRegister :> Post '[JSON] UserResponse
+type ProtectedApi = "users" :> "protectedregister" :> ReqBody '[JSON] UserRegister :> Post '[JSON] UserResponse
 
 -- | Check authentication status and dispatch the request to the appropriate
 -- endpoint handler.
 protected :: AuthResult Token -> ServerT ProtectedApi App
-protected (Authenticated t) = register t
+protected (Authenticated t) = registerProtected t
 protected _                 = throwAll err401
 
 -- | Registration endpoint handler.
-register :: Token -> UserRegister -> App UserResponse
-register _ userReg = do
+registerProtected :: Token -> UserRegister -> App UserResponse
+registerProtected _ userReg = do
   hashedPw <- hashPassword $ fromUPlainText $ userReg ^. password
   dbUser   <- runDB $ insertUser (userReg ^. name) (userReg ^. email) hashedPw
   let logAction = addNamespace "register" $ logInfoM [logt|"#{dbUser} was registered."|]
@@ -49,10 +49,10 @@ register _ userReg = do
 --------------------------------------------------------------------------------
 -- | Type-level representation of the endpoints not protected by 'Auth'.
 type UnprotectedApi = "users" :> "login" :> ReqBody '[JSON] UserLogin :> Post '[JSON] UserResponse
-
+  :<|> "users" :> "register" :> ReqBody '[JSON] UserRegister :> Post '[JSON] UserResponse
 -- | Dispatch the request to the appropriate endpoint handler.
 unprotected :: ServerT UnprotectedApi App
-unprotected = login
+unprotected = login :<|> register
 
 login :: UserLogin -> App UserResponse
 login userLogin = do
@@ -66,6 +66,15 @@ login userLogin = do
   let logAction = addNamespace "login" $ logInfoM [logt|"#{dbUser} logged in."|]
 
   mkUserResponse userLogin (passwordHash dbPass) dbUser logAction
+
+-- | Registration endpoint handler.
+register :: UserRegister -> App UserResponse
+register userReg = do
+  hashedPw <- hashPassword $ fromUPlainText $ userReg ^. password
+  dbUser   <- runDB $ insertUser (userReg ^. name) (userReg ^. email) hashedPw
+  let logAction = addNamespace "register" $ logInfoM [logt|"#{dbUser} was registered."|]
+  mkUserResponse userReg hashedPw dbUser logAction
+
 
 --------------------------------------------------------------------------------
 -- | Return a token for a given user if the login password is valid when
